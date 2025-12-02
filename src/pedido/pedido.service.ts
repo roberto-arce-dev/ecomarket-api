@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreatePedidoDto } from './dto/create-pedido.dto';
@@ -6,6 +6,7 @@ import { UpdatePedidoDto } from './dto/update-pedido.dto';
 import { Pedido, PedidoDocument } from './schemas/pedido.schema';
 import { ClienteProfileService } from '../cliente-profile/cliente-profile.service';
 import { ProductoService } from '../producto/producto.service';
+import { Role } from '../auth/enums/roles.enum';
 
 @Injectable()
 export class PedidoService {
@@ -86,38 +87,27 @@ export class PedidoService {
     }
   }
 
-  async findByCliente(clienteId: string): Promise<Pedido[]> {
+  async findByCliente(
+    clienteId: string,
+    requester?: { userId: string; role: Role },
+  ): Promise<Pedido[]> {
+    if (requester && requester.role !== Role.ADMIN) {
+      const clienteProfile = await this.clienteProfileService.findByUserId(requester.userId);
+      const requesterClienteId = (clienteProfile as any)?._id?.toString();
+      if (!requesterClienteId || requesterClienteId !== clienteId) {
+        throw new ForbiddenException('No tienes acceso a estos pedidos');
+      }
+    }
+
     const pedidos = await this.pedidoModel.find({ cliente: new Types.ObjectId(clienteId) })
       .populate('cliente', 'nombre email telefono')
-      .populate('productos.producto', 'nombre precio imagen')
-      .sort({ fechaPedido: -1 });
+      .populate('items.producto', 'nombre precio imagen')
+      .sort({ createdAt: -1 });
     return pedidos;
   }
 
-  async crearDesdeCarrito(carritoDto: {
-    clienteId: string;
-    productos: Array<{ productoId: string; cantidad: number; precio: number }>;
-    direccionEntrega: string;
-  }): Promise<Pedido> {
-    // Calcular total
-    const total = carritoDto.productos.reduce((sum, item) => 
-      sum + (item.precio * item.cantidad), 0
-    );
-
-    // Crear pedido
-    const nuevoPedido = await this.pedidoModel.create({
-      cliente: new Types.ObjectId(carritoDto.clienteId),
-      productos: carritoDto.productos.map(item => ({
-        producto: item.productoId,
-        cantidad: item.cantidad,
-        precio: item.precio
-      })),
-      total: total,
-      estado: 'pendiente',
-      direccionEntrega: carritoDto.direccionEntrega,
-      fechaPedido: new Date()
-    });
-
-    return await this.findOne((nuevoPedido._id as Types.ObjectId).toString());
+  async crearDesdeCarrito(carritoDto: CreatePedidoDto, userId: string): Promise<Pedido> {
+    // Reutilizamos la lógica de create para calcular precios y determinar cliente
+    return this.create(carritoDto, userId);
   }
 }

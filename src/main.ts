@@ -5,6 +5,8 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import * as multipart from '@fastify/multipart';
+import * as fastifyStatic from '@fastify/static';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -14,6 +16,19 @@ async function bootstrap() {
 
   await app.register(multipart, {
     limits: { fileSize: 5 * 1024 * 1024 },
+  });
+  const staticRoot = join(process.cwd(), 'uploads');
+
+  // Configurar archivos estáticos para uploads
+  await app.register(fastifyStatic, {
+    root: join(__dirname, '..', 'uploads'),
+    prefix: '/uploads/',
+    decorateReply: false,
+  });
+  await app.register(fastifyStatic, {
+    root: staticRoot,
+    prefix: '/api/uploads/',
+    decorateReply: false,
   });
 
   app.enableCors();
@@ -66,6 +81,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || configService.get<number>('PORT') || 3000;
   await app.listen(port, '0.0.0.0');
+  console.log(`🖼️ Imágenes: http://localhost:${port}/uploads/<filename> o /api/uploads/<filename>`);
   
   console.log('\n🚀 API: http://localhost:' + port + '/api');
   console.log('📚 Swagger: http://localhost:' + port + '/api/docs\n');

@@ -107,42 +107,19 @@ export class PedidoController {
   @ApiOperation({ summary: 'Obtener pedidos de un cliente' })
   @ApiParam({ name: 'clienteId', description: 'ID del cliente' })
   @ApiResponse({ status: 200, description: 'Lista de pedidos del cliente' })
-  async findByCliente(@Param('clienteId') clienteId: string) {
-    const data = await this.pedidoService.findByCliente(clienteId);
+  async findByCliente(@Param('clienteId') clienteId: string, @Req() req: any) {
+    const data = await this.pedidoService.findByCliente(clienteId, req.user);
     return { success: true, data, total: data.length };
   }
 
   @Post('crear-desde-carrito')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear pedido desde carrito' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        clienteId: { type: 'string', description: 'ID del cliente' },
-        productos: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              productoId: { type: 'string' },
-              cantidad: { type: 'number' },
-              precio: { type: 'number' }
-            }
-          }
-        },
-        direccionEntrega: { type: 'string', description: 'Dirección de entrega' }
-      },
-      required: ['clienteId', 'productos', 'direccionEntrega']
-    }
-  })
+  @ApiBody({ type: CreatePedidoDto, description: 'Usa los items del carrito (producto, cantidad) y opcionalmente dirección/notas.' })
   @ApiResponse({ status: 201, description: 'Pedido creado exitosamente desde carrito' })
-  async crearDesdeCarrito(@Body() carritoDto: {
-    clienteId: string;
-    productos: Array<{ productoId: string; cantidad: number; precio: number }>;
-    direccionEntrega: string;
-  }) {
-    const data = await this.pedidoService.crearDesdeCarrito(carritoDto);
+  async crearDesdeCarrito(@Body() carritoDto: CreatePedidoDto, @Req() req: any) {
+    const userId = req.user.userId;
+    const data = await this.pedidoService.crearDesdeCarrito(carritoDto, userId);
     return {
       success: true,
       message: 'Pedido creado exitosamente desde carrito',

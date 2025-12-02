@@ -14,14 +14,20 @@ export class Pedido {
   @Prop({ min: 0 })
   total: number;
 
-  @Prop({ enum: ['pendiente', 'procesando', 'enviado', 'entregado', 'cancelado'], default: 'pendiente' })
+  @Prop({
+    enum: ['pendiente', 'pagado', 'confirmado', 'preparando', 'procesando', 'enviado', 'entregado', 'cancelado'],
+    default: 'pendiente',
+  })
   estado?: string;
 
   @Prop()
-  direccionEnvio?: string;
+  direccionEntrega?: string;
 
   @Prop()
   fechaEntrega?: Date;
+
+  @Prop()
+  notasEntrega?: string;
 
   @Prop()
   imagen?: string;

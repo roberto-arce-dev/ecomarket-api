@@ -7,10 +7,10 @@ export class UpdatePedidoDto extends PartialType(CreatePedidoDto) {
   @ApiPropertyOptional({
     example: 'confirmado',
     description: 'Estado del pedido',
-    enum: ['pendiente', 'confirmado', 'preparando', 'enviado', 'entregado', 'cancelado'],
+    enum: ['pendiente', 'pagado', 'confirmado', 'preparando', 'procesando', 'enviado', 'entregado', 'cancelado'],
   })
   @IsOptional()
-  @IsEnum(['pendiente', 'confirmado', 'preparando', 'enviado', 'entregado', 'cancelado'])
+  @IsEnum(['pendiente', 'pagado', 'confirmado', 'preparando', 'procesando', 'enviado', 'entregado', 'cancelado'])
   estado?: string;
 
   @ApiPropertyOptional({
